@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════════
+         List View
+         ════════════════════════════════════════════════════════ -->
+    <record id="view_test_model_list" model="ir.ui.view">
+        <field name="name">test.model.list</field>
+        <field name="model">test.model</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'extracted'" decoration-muted="state == 'draft'">
+                <field name="name" string="Invoice #"/>
+                <field name="vendor_name"/>
+                <field name="invoice_date"/>
+                <field name="total_amount" sum="Total"/>
+                <field name="currency"/>
+                <field name="due_date"/>
+                <field name="state"
+                       widget="badge"
+                       decoration-success="state == 'extracted'"
+                       decoration-info="state == 'draft'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════
+         Form View
+         ════════════════════════════════════════════════════════ -->
+    <record id="view_test_model_form" model="ir.ui.view">
+        <field name="name">test.model.form</field>
+        <field name="model">test.model</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_extract_invoice"
+                            type="object"
+                            string="⚙ Extract Invoice Data"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_reset_draft"
+                            type="object"
+                            string="↺ Reset to Draft"
+                            class="btn-secondary"
+                            invisible="state != 'extracted'"
+                            confirm="This will clear the raw OCR text. Continue?"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,extracted"/>
+                </header>
+                <sheet>
+                    <!-- Upload section — visible only in draft -->
+                    <div class="oe_title" invisible="state != 'draft'">
+                        <h2>Upload Invoice Image</h2>
+                        <group>
+                            <field name="invoice_image" filename="invoice_filename"
+                                   widget="binary" class="oe_inline"/>
+                            <field name="invoice_filename" invisible="1"/>
+                        </group>
+                    </div>
+
+                    <!-- Extracted data -->
+                    <group string="Invoice Details" invisible="state != 'extracted'">
+                        <group>
+                            <field name="name" string="Invoice Number"/>
+                            <field name="vendor_name"/>
+                            <field name="currency"/>
+                        </group>
+                        <group>
+                            <field name="invoice_date"/>
+                            <field name="due_date"/>
+                            <field name="total_amount"/>
+                        </group>
+                    </group>
+                    
+                    <notebook invisible="state != 'extracted'">
+                        <page string="Invoice Lines" name="invoice_lines">
+                            <field name="invoice_lines" mode="list">
+                                <list editable="bottom">
+                                    <field name="name" string="Description"/>
+                                    <field name="quantity" string="Qty"/>
+                                    <field name="unit_price" string="Rate"/>
+                                    <field name="total_price" string="Amount" sum="Total"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════
+         Search View
+         ════════════════════════════════════════════════════════ -->
+    <record id="view_test_model_search" model="ir.ui.view">
+        <field name="name">test.model.search</field>
+        <field name="model">test.model</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Invoice #"/>
+                <field name="vendor_name"/>
+                <filter name="filter_extracted" string="Extracted"
+                        domain="[('state', '=', 'extracted')]"/>
+                <filter name="filter_draft" string="Draft"
+                        domain="[('state', '=', 'draft')]"/>
+                <separator/>
+                <filter name="group_vendor" string="Vendor"
+                        context="{'group_by': 'vendor_name'}"/>
+                <filter name="group_state" string="Status"
+                        context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════
+         Action
+         ════════════════════════════════════════════════════════ -->
+    <record id="action_test_model" model="ir.actions.act_window">
+        <field name="name">Invoice Extractions</field>
+        <field name="res_model">test.model</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_test_model_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Upload your first invoice image!
+            </p>
+            <p>
+                Click <strong>Create</strong>, upload an invoice image, then click
+                <strong>Extract Invoice Data</strong> to automatically read the invoice.
+            </p>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════
+         Menu
+         ════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_test_root" name="Invoice OCR"/>
+
+    <menuitem id="menu_test_model"
+              name="Invoices"
+              parent="menu_test_root"
+              action="action_test_model"/>
+
+</odoo>
