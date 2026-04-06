@@ -1,83 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ════════════════════════════════════════════════════════
-         List View
-         ════════════════════════════════════════════════════════ -->
+    <!-- List View -->
     <record id="view_test_model_list" model="ir.ui.view">
         <field name="name">test.model.list</field>
         <field name="model">test.model</field>
         <field name="arch" type="xml">
-            <list decoration-success="state == 'extracted'" decoration-muted="state == 'draft'">
-                <field name="name" string="Invoice #"/>
+            <list class="o_invoice_ocr_list" decoration-success="state == 'extracted'" decoration-info="state == 'draft'" sample="1">
+                <field name="name" string="Invoice #" decoration-bf="1"/>
                 <field name="vendor_name"/>
                 <field name="invoice_date"/>
-                <field name="total_amount" sum="Total"/>
-                <field name="currency"/>
-                <field name="due_date"/>
-                <field name="state"
-                       widget="badge"
-                       decoration-success="state == 'extracted'"
+                <field name="currency_id" column_invisible="True"/>
+                <field name="total_amount" widget="monetary" options="{'currency_field': 'currency_id'}" sum="Total Amount"/>
+                <field name="state" widget="badge" 
+                       decoration-success="state == 'extracted'" 
                        decoration-info="state == 'draft'"/>
             </list>
         </field>
     </record>
 
-    <!-- ════════════════════════════════════════════════════════
-         Form View
-         ════════════════════════════════════════════════════════ -->
+    <!-- Form View -->
     <record id="view_test_model_form" model="ir.ui.view">
         <field name="name">test.model.form</field>
         <field name="model">test.model</field>
         <field name="arch" type="xml">
-            <form>
+            <form class="o_invoice_ocr_form" js_class="test_model_form">
                 <header>
-                    <button name="action_extract_invoice"
-                            type="object"
-                            string="⚙ Extract Invoice Data"
-                            class="btn-primary"
+                    <button name="action_extract_invoice" type="object" 
+                            string="⚙ Extract Data" class="btn-primary btn-glow" 
                             invisible="state != 'draft'"/>
-                    <button name="action_reset_draft"
-                            type="object"
-                            string="↺ Reset to Draft"
-                            class="btn-secondary"
+                    <button name="action_reset_draft" type="object" 
+                            string="↺ Reset to Draft" class="btn-secondary" 
                             invisible="state != 'extracted'"
-                            confirm="This will clear the raw OCR text. Continue?"/>
+                            confirm="This will clear the extracted data. Continue?"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,extracted"/>
                 </header>
                 <sheet>
-                    <!-- Upload section — visible only in draft -->
-                    <div class="oe_title" invisible="state != 'draft'">
-                        <h2>Upload Invoice Image</h2>
-                        <group>
-                            <field name="invoice_image" filename="invoice_filename"
-                                   widget="binary" class="oe_inline"/>
+                    <div class="oe_button_box" name="button_box"/>
+                    
+                    <div class="row">
+                        <div class="col-md-4 text-center border-end">
+                            <label for="invoice_file" string="Invoice Document" class="fw-bold mb-2"/>
+                            
+                            <!-- Standard File Upload Widget -->
+                            <field name="invoice_file" filename="invoice_filename" 
+                                   invisible="state == 'extracted'"/>
                             <field name="invoice_filename" invisible="1"/>
-                        </group>
+                            <field name="is_image" invisible="1"/>
+                            <field name="is_pdf" invisible="1"/>
+
+                            <!-- Image Preview (Only shown if file is an image) -->
+                            <div class="mt-3" invisible="not is_image">
+                                <field name="invoice_file" widget="image" class="oe_avatar custom_img_preview" 
+                                       options="{'size': [250, 400]}" readonly="1"/>
+                            </div>
+                            
+                            <!-- PDF Preview -->
+                            <div class="mt-4" invisible="not is_pdf">
+                                <field name="invoice_file" widget="pdf_viewer" readonly="1" 
+                                       style="width: 100%; height: 400px; border-radius: 8px; border: 1px solid #ced4da; margin-bottom: 20px; display: block;"/>
+                            </div>
+                            
+                            <!-- Document Icon for other formats (DOCX) -->
+                            <div class="mt-3 text-muted" invisible="is_image or is_pdf or not invoice_filename">
+                                <i class="fa fa-file-word-o fa-5x" style="color: #495057;"/>
+                                <p class="mt-3 fw-bold"><field name="invoice_filename" readonly="1"/></p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="oe_title">
+                                <label for="name" string="Invoice Number" class="oe_edit_only"/>
+                                <h1>
+                                    <field name="name" placeholder="e.g. INV/2024/001" 
+                                           readonly="state == 'extracted'"/>
+                                </h1>
+                            </div>
+                            
+                            <group>
+                                <group string="General Information">
+                                    <field name="vendor_name" placeholder="Vendor identified by OCR"/>
+                                    <field name="invoice_date"/>
+                                    <field name="due_date"/>
+                                </group>
+                                <group string="Financial Context">
+                                    <field name="currency_id" options="{'no_create': True, 'no_open': True}"/>
+                                    <field name="total_amount" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                </group>
+                            </group>
+                        </div>
                     </div>
 
-                    <!-- Extracted data -->
-                    <group string="Invoice Details" invisible="state != 'extracted'">
-                        <group>
-                            <field name="name" string="Invoice Number"/>
-                            <field name="vendor_name"/>
-                            <field name="currency"/>
-                        </group>
-                        <group>
-                            <field name="invoice_date"/>
-                            <field name="due_date"/>
-                            <field name="total_amount"/>
-                        </group>
-                    </group>
-                    
-                    <notebook invisible="state != 'extracted'">
-                        <page string="Invoice Lines" name="invoice_lines">
-                            <field name="invoice_lines" mode="list">
+                    <notebook>
+                        <page string="Extracted Lines" name="invoice_lines" invisible="state != 'extracted'">
+                            <field name="invoice_lines">
                                 <list editable="bottom">
                                     <field name="name" string="Description"/>
-                                    <field name="quantity" string="Qty"/>
+                                    <field name="quantity"/>
                                     <field name="unit_price" string="Rate"/>
-                                    <field name="total_price" string="Amount" sum="Total"/>
+                                    <field name="total_price" string="Subtotal" sum="Total"/>
                                 </list>
                             </field>
                         </page>
@@ -87,56 +108,44 @@
         </field>
     </record>
 
-    <!-- ════════════════════════════════════════════════════════
-         Search View
-         ════════════════════════════════════════════════════════ -->
-    <record id="view_test_model_search" model="ir.ui.view">
+    <!-- Search View -->
+<!--
+    <record id="test_model_search_view" model="ir.ui.view">
         <field name="name">test.model.search</field>
         <field name="model">test.model</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name" string="Invoice #"/>
+                <field name="name"/>
                 <field name="vendor_name"/>
-                <filter name="filter_extracted" string="Extracted"
-                        domain="[('state', '=', 'extracted')]"/>
-                <filter name="filter_draft" string="Draft"
-                        domain="[('state', '=', 'draft')]"/>
-                <separator/>
-                <filter name="group_vendor" string="Vendor"
-                        context="{'group_by': 'vendor_name'}"/>
-                <filter name="group_state" string="Status"
-                        context="{'group_by': 'state'}"/>
+                <filter string="Extracted" name="is_extracted" domain="[('state', '=', 'extracted')]"/>
+                <filter string="Draft" name="is_draft" domain="[('state', '=', 'draft')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Vendor" name="vendor" context="{'group_by': 'vendor_name'}"/>
+                    <filter string="Status" name="state" context="{'group_by': 'state'}"/>
+                </group>
             </search>
         </field>
     </record>
+-->
 
-    <!-- ════════════════════════════════════════════════════════
-         Action
-         ════════════════════════════════════════════════════════ -->
+
+    <!-- Action -->
     <record id="action_test_model" model="ir.actions.act_window">
         <field name="name">Invoice Extractions</field>
         <field name="res_model">test.model</field>
         <field name="view_mode">list,form</field>
-        <field name="search_view_id" ref="view_test_model_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                Upload your first invoice image!
+                Upload your first invoice!
             </p>
             <p>
-                Click <strong>Create</strong>, upload an invoice image, then click
-                <strong>Extract Invoice Data</strong> to automatically read the invoice.
+                Our AI will automatically detect fields and line items from your image.
             </p>
         </field>
     </record>
 
-    <!-- ════════════════════════════════════════════════════════
-         Menu
-         ════════════════════════════════════════════════════════ -->
-    <menuitem id="menu_test_root" name="Invoice OCR"/>
-
-    <menuitem id="menu_test_model"
-              name="Invoices"
-              parent="menu_test_root"
-              action="action_test_model"/>
+    <!-- Menu -->
+    <menuitem id="menu_test_root" name="Invoice AI OCR" sequence="10"/>
+    <menuitem id="menu_test_model" name="Processed Invoices" parent="menu_test_root" action="action_test_model" sequence="10"/>
 
 </odoo>

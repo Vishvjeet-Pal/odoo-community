@@ -29,6 +29,20 @@ except ImportError:
     OLLAMA_AVAILABLE = False
     _logger.warning("ollama package is not installed. LLM extraction will not work.")
 
+try:
+    import fitz  # PyMuPDF
+    PYMUPDF_AVAILABLE = True
+except ImportError:
+    PYMUPDF_AVAILABLE = False
+    _logger.warning("pymupdf is not installed. PDF extraction will not work.")
+
+try:
+    import docx
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+    _logger.warning("python-docx is not installed. Word extraction will not work.")
+
 
 # ── Prompt sent to the LLM ───────────────────────────────────────────────────
 EXTRACTION_PROMPT = """You are an intelligent invoice data extractor.
@@ -73,10 +87,10 @@ class InvoiceExtractor(models.Model):
     _description = 'Invoice Extractor'
     _order = 'create_date desc'
 
-    # ── Upload field (cleared after extraction) ──────────────────────────────
-    invoice_image = fields.Binary(
-        string="Invoice Image",
-        help="Upload an invoice image (PNG, JPG). Used only for extraction — not stored.",
+    # ── Upload field (Universal File Upload) ──────────────────────────────
+    invoice_file = fields.Binary(
+        string="Invoice File",
+        help="Upload an invoice (PDF, DOCX, PNG, JPG).",
     )
     invoice_filename = fields.Char(string="Filename")
 
@@ -84,8 +98,13 @@ class InvoiceExtractor(models.Model):
     name = fields.Char(string="Invoice Number")
     vendor_name = fields.Char(string="Vendor / Supplier")
     invoice_date = fields.Date(string="Invoice Date")
-    total_amount = fields.Float(string="Total Amount", digits=(12, 2))
-    currency = fields.Char(string="Currency")
+    total_amount = fields.Float(
+        string="Total Amount", 
+        digits=(12, 2), 
+        compute='_compute_total_amount', 
+        store=True
+    )
+    currency_id = fields.Many2one('res.currency', string="Currency")
     due_date = fields.Date(string="Due Date")
     
     # ── One2many for Lines ───────────────────────────────────────────────────
@@ -94,6 +113,21 @@ class InvoiceExtractor(models.Model):
         inverse_name='invoice_id',
         string="Invoice Lines"
     )
+
+    is_image = fields.Boolean(compute='_compute_file_types')
+    is_pdf = fields.Boolean(compute='_compute_file_types')
+
+    @api.depends('invoice_filename')
+    def _compute_file_types(self):
+        for record in self:
+            ext = (record.invoice_filename or "").lower().split('.')[-1]
+            record.is_image = ext in ['png', 'jpg', 'jpeg', 'webp']
+            record.is_pdf = ext == 'pdf'
+
+    @api.depends('invoice_lines.total_price')
+    def _compute_total_amount(self):
+        for record in self:
+            record.total_amount = sum(record.invoice_lines.mapped('total_price'))
 
     # ── State ─────────────────────────────────────────────────────────────────
     state = fields.Selection([
@@ -107,8 +141,8 @@ class InvoiceExtractor(models.Model):
     def action_extract_invoice(self):
         self.ensure_one()
 
-        if not self.invoice_image:
-            raise UserError("Please upload an invoice image first.")
+        if not self.invoice_file:
+            raise UserError("Please upload an invoice file first.")
         if not EASYOCR_AVAILABLE:
             raise UserError("easyocr is not installed in Odoo's Python environment.")
         if not PIL_AVAILABLE:
@@ -116,20 +150,43 @@ class InvoiceExtractor(models.Model):
         if not OLLAMA_AVAILABLE:
             raise UserError("ollama package is not installed in Odoo's Python environment.")
 
-        # ── Step 1: OCR ───────────────────────────────────────────────────
-        image_bytes = base64.b64decode(self.invoice_image)
+        # ── Step 1: Detect File Type & Extract Text ───────────────────────
+        file_bytes = base64.b64decode(self.invoice_file)
+        ext = (self.invoice_filename or "").lower().split('.')[-1]
+        raw_text = ""
 
-        _logger.info("Running EasyOCR on uploaded invoice image…")
-        reader = easyocr.Reader(['en'], gpu=False)
-        results = reader.readtext(image_bytes, detail=0, paragraph=True)
-        raw_text = "\n".join(results)
-        _logger.info("OCR complete. Raw text:\n%s", raw_text)
+        if ext == 'pdf':
+            if not PYMUPDF_AVAILABLE:
+                raise UserError("pymupdf is not installed to handle PDFs.")
+            raw_text = self._extract_text_from_pdf(file_bytes)
+        elif ext in ['doc', 'docx']:
+            if not DOCX_AVAILABLE:
+                raise UserError("python-docx is not installed to handle Word files.")
+            raw_text = self._extract_text_from_docx(file_bytes)
+        elif ext in ['png', 'jpg', 'jpeg', 'webp']:
+            if not EASYOCR_AVAILABLE:
+                raise UserError("easyocr is not installed to handle images.")
+            _logger.info("Running EasyOCR on image…")
+            reader = easyocr.Reader(['en'], gpu=False)
+            results = reader.readtext(file_bytes, detail=0, paragraph=True)
+            raw_text = "\n".join(results)
+        else:
+            # Try OCR as fallback for unknown common image types
+            if EASYOCR_AVAILABLE:
+                _logger.info("Unknown extension '%s', attempting EasyOCR fallback…", ext)
+                reader = easyocr.Reader(['en'], gpu=False)
+                results = reader.readtext(file_bytes, detail=0, paragraph=True)
+                raw_text = "\n".join(results)
+            else:
+                raise UserError(f"Unsupported file format (.{ext}) and OCR is unavailable.")
 
-        if not raw_text.strip():
+        if not raw_text or not raw_text.strip():
             raise UserError(
-                "OCR could not extract any text from the image. "
-                "Please ensure the image is clear and contains readable text."
+                "Could not extract any text from the document. "
+                "Please ensure the file is clear and not password protected."
             )
+
+        _logger.info("Extraction complete. Raw text length: %d", len(raw_text))
 
         # ── Step 2: LLM parsing via Ollama ────────────────────────────────
         parsed = self._extract_with_llm(raw_text)
@@ -161,17 +218,20 @@ class InvoiceExtractor(models.Model):
                     'total_price': _safe_float(item.get('total_price')),
                 }))
 
+        currency_code = _safe_str(parsed.get('currency')).upper()
+        currency_rec = self.env['res.currency'].search([('name', '=', currency_code)], limit=1)
+
         self.write({
             'name':          _safe_str(parsed.get('invoice_number')),
             'vendor_name':   _safe_str(parsed.get('vendor_name')),
             'invoice_date':  _safe_date(parsed.get('invoice_date')),
             'due_date':      _safe_date(parsed.get('due_date')),
             'total_amount':  _safe_float(parsed.get('total_amount')),
-            'currency':      _safe_str(parsed.get('currency')),
+            'currency_id':   currency_rec.id if currency_rec else False,
             'invoice_lines': line_commands,
             'state':         'extracted',
-            # Image is cleared — we only needed it for extraction
-            'invoice_image':    False,
+            # File is cleared — we only needed it for extraction
+            'invoice_file':     False,
             'invoice_filename': False,
         })
 
@@ -180,6 +240,48 @@ class InvoiceExtractor(models.Model):
             'type': 'ir.actions.client',
             'tag': 'reload',
         }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    #  Format Helpers
+    # ─────────────────────────────────────────────────────────────────────────
+    def _extract_text_from_pdf(self, pdf_bytes):
+        """Extract text from PDF. Falls back to OCR if no digital text layer is found."""
+        full_text = []
+        try:
+            with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+                reader = None
+                for page_index, page in enumerate(doc):
+                    page_text = page.get_text().strip()
+                    
+                    if not page_text and EASYOCR_AVAILABLE:
+                        _logger.info("No text layer on PDF page %d, falling back to OCR…", page_index)
+                        # Render page to image (pixmap)
+                        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom for better OCR
+                        img_bytes = pix.tobytes("png")
+                        
+                        if not reader:
+                            reader = easyocr.Reader(['en'], gpu=False)
+                        
+                        results = reader.readtext(img_bytes, detail=0, paragraph=True)
+                        page_text = "\n".join(results)
+                    
+                    if page_text:
+                        full_text.append(page_text)
+                        
+        except Exception as e:
+            _logger.error("Data extraction from PDF failed: %s", e)
+            raise UserError(f"Error reading PDF: {e}")
+            
+        return "\n".join(full_text)
+
+    def _extract_text_from_docx(self, docx_bytes):
+        """Extract text from a Word document using python-docx"""
+        try:
+            doc = docx.Document(io.BytesIO(docx_bytes))
+            return "\n".join([para.text for para in doc.paragraphs])
+        except Exception as e:
+            _logger.error("python-docx failed to read DOCX: %s", e)
+            raise UserError(f"Error reading Word document: {e}")
 
     # ─────────────────────────────────────────────────────────────────────────
     #  LLM helper

@@ -1,0 +1,404 @@
+/* Modern Bright Light UI Overhaul for Invoice OCR */
+
+/* =========================================================
+   GLOBAL ODOO OVERRIDES FOR THEME COLOR #FF7043
+   ========================================================= */
+
+/* Global Navbar */
+.o_main_navbar {
+    background-color: #FF7043 !important;
+    border-bottom: none !important;
+}
+
+.o_main_navbar .o_menu_sections .o_nav_entry,
+.o_main_navbar .o_menu_sections .dropdown-toggle {
+    background: var(--NavBar-entry-backgroundColor, #F4511E);
+    border: 1px solid transparent;
+}
+
+/* Fix for 'Processed Invoices' and other menu links */
+.o_main_navbar .o_menu_brand,
+.o_main_navbar .o_menu_sections .nav-link,
+.o_main_navbar .o_menu_systray .nav-link {
+    background-color: #F4511E !important;
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+.o_main_navbar .o_menu_brand:hover,
+.o_main_navbar .o_menu_sections .nav-link:hover,
+.o_main_navbar .o_menu_sections .nav-link.active,
+.o_main_navbar>a:hover,
+.o_main_navbar>a:focus,
+.o_main_navbar .show .dropdown-toggle {
+    background-color: #FF7043 !important;
+    /* Darker orange for active/hover */
+    color: white !important;
+}
+
+/* Control Panel (Breadcrumb & Top Left Text) */
+.o_control_panel .breadcrumb-item.active,
+.o_control_panel .breadcrumb-item.active span,
+.o_control_panel .o_breadcrumb .active {
+    color: #FF7043 !important;
+}
+
+/* Control Panel Buttons (New Button etc) */
+.o_control_panel .btn-primary,
+.o_control_panel .o_list_button_add,
+.o_control_panel .o_form_button_create {
+    color: #FF7043 !important;
+    border: 1px solid #FF7043 !important;
+    background-color: #FFFFFF !important;
+}
+
+.o_control_panel .btn-primary:hover,
+.o_control_panel .o_list_button_add:hover,
+.o_control_panel .o_form_button_create:hover {
+    background-color: #FFF1E6 !important;
+    border-color: #F4511E !important;
+    color: #F4511E !important;
+}
+
+/* =========================================================
+   INVOICE OCR FORM & LIST STYLING
+   ========================================================= */
+
+/* Main Dashboard List View Styling */
+.o_list_view.o_invoice_ocr_list {
+    border: 2px solid #F4511E !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    margin: 15px !important;
+    box-shadow: 0 4px 12px rgba(244, 81, 30, 0.1) !important;
+}
+
+.o_list_view.o_invoice_ocr_list thead th {
+    background-color: #FFF1E6 !important;
+    border-bottom: 2px solid #F4511E !important;
+    color: #F4511E !important;
+}
+
+.o_invoice_ocr_form {
+    /* Light grayish-blue background matching the theme */
+    background: #EBF0F6 !important;
+    color: #333 !important;
+    /* Dark text */
+}
+
+.o_form_view .o_form_sheet_bg {
+    --formView-sheetBg-padding-x: 16px;
+    padding-left: var(--formView-sheetBg-padding-x);
+    padding-right: var(--formView-sheetBg-padding-right, var(--formView-sheetBg-padding-x));
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0px;
+}
+
+/* Hide the default grayish sheet background of Odoo */
+.o_invoice_ocr_form .o_form_sheet_bg {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Main White Card matching the theme */
+.o_invoice_ocr_form .o_form_sheet {
+    background: #FFFFFF !important;
+    border: 1px solid #E8ECEF !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    width: 98% !important;
+    /* Force width high to fit desktop */
+    min-width: 95% !important;
+    max-width: 100% !important;
+    margin: 15px auto !important;
+    padding: 30px !important;
+}
+
+/* Form Header / Statusbar */
+.o_invoice_ocr_form .o_form_statusbar {
+    background: #FFFFFF !important;
+    border-bottom: 2px solid #FF7043 !important;
+    /* Adding theme color to header separation */
+    border-radius: 12px 12px 0 0 !important;
+    padding: 10px 15px !important;
+}
+
+/* Styling the Stages (Draft -> Extracted Transitions) */
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button {
+    font-weight: 600 !important;
+    text-transform: capitalize !important;
+    font-size: 0.9rem !important;
+    color: #333 !important;
+    /* Default inactive text */
+}
+
+/* Active Stage Highlight and Arrows coloring */
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button.btn-primary,
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button.btn-primary[aria-checked="true"],
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button:not(.disabled):not(:disabled) {
+    background-color: #FF7043 !important;
+    color: white !important;
+    border-color: #FF7043 !important;
+}
+
+/* Odoo uses pseudo-elements for the arrow transition edges. Color them. */
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button.btn-primary::after,
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button:not(.disabled):not(:disabled)::after {
+    border-left-color: #FF7043 !important;
+}
+
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button.btn-primary::before,
+.o_invoice_ocr_form .o_statusbar_status .o_arrow_button:not(.disabled):not(:disabled)::before {
+    border-left-color: #FFFFFF !important;
+    /* Cut out to match white background */
+}
+
+/* Enhance headings and text */
+.o_invoice_ocr_form h1,
+.o_invoice_ocr_form .o_form_label,
+.o_invoice_ocr_form .oe_title label {
+    color: #212529 !important;
+    font-weight: 700 !important;
+}
+
+/* Clean inputs */
+.o_invoice_ocr_form input,
+.o_invoice_ocr_form .o_input,
+.o_invoice_ocr_form select,
+.o_invoice_ocr_form textarea {
+    background: #F8F9FA !important;
+    border: 1px solid #CED4DA !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    color: #212529 !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.o_invoice_ocr_form input:focus,
+.o_invoice_ocr_form .o_input:focus {
+    background: #FFFFFF !important;
+    border-color: #FF7043 !important;
+    box-shadow: 0 0 0 3px rgba(255, 112, 67, 0.2) !important;
+    outline: none !important;
+}
+
+/* Global button borders applied matching theme */
+.o_invoice_ocr_form .btn {
+    border: 1px solid #FF7043 !important;
+}
+
+/* Primary Button (Extract Data) */
+.o_invoice_ocr_form .btn-primary.btn-glow {
+    background: #FF7043 !important;
+    /* Theme orange */
+    color: #fff !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 4px 6px rgba(255, 112, 67, 0.2) !important;
+    transition: all 0.2s ease !important;
+    margin-right: 10px !important;
+}
+
+.o_invoice_ocr_form .btn-primary.btn-glow:hover {
+    background: #F4511E !important;
+    /* Darker orange on hover */
+    border-color: #F4511E !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 12px rgba(255, 112, 67, 0.3) !important;
+}
+
+/* Secondary button (Reset to draft) */
+.o_invoice_ocr_form .btn-secondary {
+    background: #FFFFFF !important;
+    color: #FF7043 !important;
+    /* Make text matching theme border */
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+    transition: all 0.2s ease !important;
+}
+
+.o_invoice_ocr_form .btn-secondary:hover {
+    background: #FFF1E6 !important;
+}
+
+/* Image preview box enhancement */
+.o_invoice_ocr_form .custom_img_preview {
+    background: #F8F9FA !important;
+    border: 2px dashed #ADB5BD !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    box-shadow: none !important;
+    transition: all 0.3s ease !important;
+}
+
+.o_invoice_ocr_form .custom_img_preview:hover {
+    border-color: #FF7043 !important;
+    background: #FFF1E6 !important;
+    /* Very light orange tint */
+}
+
+/* Notebook / Tabs */
+.o_invoice_ocr_form .o_notebook {
+    background: transparent !important;
+    margin-top: 30px !important;
+}
+
+.o_invoice_ocr_form .nav-tabs {
+    border-bottom: 2px solid #E9ECEF !important;
+}
+
+.o_invoice_ocr_form .nav-tabs .nav-link {
+    background: transparent !important;
+    border: none !important;
+    color: #6C757D !important;
+    font-weight: 600 !important;
+    margin-right: 20px !important;
+    padding: 10px 5px !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.o_invoice_ocr_form .nav-tabs .nav-link.active {
+    background: transparent !important;
+    color: #FF7043 !important;
+    border-bottom: 3px solid #FF7043 !important;
+    box-shadow: none !important;
+}
+
+.o_invoice_ocr_form .nav-tabs .nav-link:hover:not(.active) {
+    color: #FF7043 !important;
+}
+
+/* Line items list */
+.o_invoice_ocr_form .o_list_view,
+.o_invoice_ocr_form .o_list_table {
+    background: #FFFFFF !important;
+    border-radius: 8px !important;
+    border: 1px solid #FF7043 !important;
+    /* Table border in theme color */
+    color: #212529 !important;
+    width: 100% !important;
+    /* Ensure table stretches */
+}
+
+/* Ensure headers are fully visible and match theme */
+.o_invoice_ocr_form .o_list_view thead th,
+.o_invoice_ocr_form .o_list_table thead th {
+    background: #FFF1E6 !important;
+    /* Subtle theme color for header bg */
+    color: #FF7043 !important;
+    /* Theme color for text */
+    border-bottom: 2px solid #FF7043 !important;
+    /* Theme color for border */
+    white-space: pre-wrap !important;
+    /* FIX for cropped headers */
+    word-break: normal !important;
+    padding: 12px 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.95em !important;
+}
+
+.o_invoice_ocr_form .o_list_view tbody tr,
+.o_invoice_ocr_form .o_list_table tbody tr {
+    background: #FFFFFF !important;
+}
+
+.o_invoice_ocr_form .o_list_view tbody tr:nth-child(even),
+.o_invoice_ocr_form .o_list_table tbody tr:nth-child(even) {
+    background: #F8F9FA !important;
+}
+
+.o_invoice_ocr_form .o_list_view tbody tr:hover,
+.o_invoice_ocr_form .o_list_table tbody tr:hover {
+    background: #FFF1E6 !important;
+    /* Light orange tint on hover */
+}
+
+/* Border for rows using theme color with opacity */
+.o_invoice_ocr_form .o_list_view td,
+.o_invoice_ocr_form .o_list_table td {
+    color: #212529 !important;
+    border-top: 1px solid rgba(255, 112, 67, 0.3) !important;
+    padding: 10px !important;
+}
+
+/* Fix visibility for editable fields and spans in list view */
+.o_invoice_ocr_form .o_list_view td span,
+.o_invoice_ocr_form .o_list_view td input,
+.o_invoice_ocr_form .o_list_view .o_field_char,
+.o_invoice_ocr_form .o_list_view .o_field_number {
+    color: #212529 !important;
+    background: transparent !important;
+}
+
+/* Force text colors in fields back to standard dark */
+.o_invoice_ocr_form .o_field_widget,
+.o_invoice_ocr_form .o_field_widget .text-muted {
+    color: #495057 !important;
+}
+
+/* =========================================================
+   CUSTOM PROCESSING OVERLAY (AI EXTRACTION)
+   ========================================================= */
+
+/* Darkened themed backdrop */
+body.o_invoice_extract_processing .o_blockUI {
+    background-color: rgba(235, 240, 246, 0.9) !important;
+    backdrop-filter: blur(4px) !important;
+    z-index: 1100 !important;
+}
+
+/* Custom Message Text */
+body.o_invoice_extract_processing .o_blockUI::after {
+    content: "AI is analyzing your invoice... Please wait.";
+    display: block;
+    position: fixed;
+    top: 62% !important;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #FF7043 !important;
+    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+    text-align: center;
+    width: 100%;
+    letter-spacing: 1px;
+}
+
+/* Themed Rotating Bar Spinner */
+body.o_invoice_extract_processing .o_blockUI .o_spinner {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100px !important;
+    height: 100px !important;
+    border: 8px solid #FFFFFF !important;
+    border-top: 8px solid #FF7043 !important;
+    /* Theme color */
+    border-radius: 50% !important;
+    animation: rotate_bar_spinner 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite !important;
+    margin: 0 auto !important;
+    position: fixed !important;
+    top: 45% !important;
+    left: calc(50% - 50px) !important;
+}
+
+/* Remove default Odoo spinner icon if it's a child */
+body.o_invoice_extract_processing .o_blockUI .o_spinner img,
+body.o_invoice_extract_processing .o_blockUI .o_spinner i {
+    display: none !important;
+}
+
+@keyframes rotate_bar_spinner {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
